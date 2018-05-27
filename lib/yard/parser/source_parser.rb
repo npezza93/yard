@@ -33,6 +33,8 @@ module YARD
       def initialize(global_state, files)
         @global_state = global_state
         @files = files.dup
+        @global_state.total_file_count = files.size
+        @global_state.total_processed = 0
         @global_state.ordered_parser = self
       end
 
@@ -40,11 +42,16 @@ module YARD
       #
       # @see Processor#parse_remaining_files
       def parse
+        @global_state.block = Proc.new if block_given?
+
         until files.empty?
           file = files.shift
           log.capture("Parsing #{file}") do
             SourceParser.new(SourceParser.parser_type, @global_state).parse(file)
           end
+
+          @global_state.total_processed += 1
+          @global_state.block.call(@global_state.total_processed.to_f / @global_state.total_file_count * 100.0, "Parsed #{file}")
         end
       end
     end
